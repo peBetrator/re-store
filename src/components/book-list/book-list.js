@@ -1,49 +1,70 @@
-import React, { Component } from 'react';
-import BookListItem from '../book-list-item';
-import { connect } from 'react-redux';
+import React, { Component } from "react";
+import BookListItem from "../book-list-item";
+import { connect } from "react-redux";
 
-import { withBookstoreService } from '../hoc';
-import { booksLoaded } from '../../actions';
-import { compose } from '../../utils';
+import { withBookstoreService } from "../hoc";
+import { booksRequested, booksLoaded, booksError } from "../../actions";
+import { compose } from "../../utils";
 
-import './book-list.css';
+import "./book-list.css";
+import Spinner from "../spinner";
+import ErrorIndicator from "../error-indicator";
 
 class BookList extends Component {
-
   componentDidMount() {
-    // 1. receive data
-    const { bookstoreService } = this.props;
-    const data = bookstoreService.getBooks();
+    const {
+      bookstoreService,
+      booksRequested,
+      booksLoaded,
+      booksError
+    } = this.props;
 
-    // 2. dispacth action to store
-    this.props.booksLoaded(data);
+    booksRequested();
+    bookstoreService
+      .getBooks()
+      .then(data => {
+        booksLoaded(data);
+      })
+      .catch(err => booksError(err));
   }
 
   render() {
-    const { books } = this.props;
+    const { books, loading, error } = this.props;
+    if (loading) {
+      return <Spinner />;
+    }
+    if (error) {
+      return <ErrorIndicator />;
+    }
+
     return (
       <ul className="book-list">
-        {
-          books.map((book) => {
-            return (
-              <li key={book.id}><BookListItem book={book}/></li>
-            )
-          })
-        }
+        {books.map(book => {
+          return (
+            <li key={book.id}>
+              <BookListItem book={book} />
+            </li>
+          );
+        })}
       </ul>
     );
   }
 }
 
-const mapStateToProps = ({ books }) => {
-  return { books };
+const mapStateToProps = ({ books, loading, error }) => {
+  return { books, loading, error };
 };
 
 const mapDispatchToProps = {
-  booksLoaded
+  booksRequested,
+  booksLoaded,
+  booksError
 };
 
 export default compose(
   withBookstoreService(),
-  connect(mapStateToProps, mapDispatchToProps)
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
 )(BookList);
